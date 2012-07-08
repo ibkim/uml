@@ -15,6 +15,11 @@ config DEVKMEM
 	  kind of kernel debugging operations.
 	  When in doubt, say "N".
 
+config TEST_CHAR
+       bool "UML test char device driver"
+       help
+	 Test Driver
+
 config STALDRV
 	bool "Stallion multiport serial support"
 	depends on SERIAL_NONSTANDARD
