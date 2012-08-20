@@ -16,6 +16,9 @@
 #include <linux/miscdevice.h>
 #include <linux/module.h>
 #include <linux/mm.h>
+#include <linux/interrupt.h>
+#include "os.h"
+#include "irq_kern.h"
 
 #include <asm/uaccess.h>
 #include "mem_user.h"
@@ -99,11 +102,45 @@ static struct miscdevice mmapper_dev = {
 	.fops		= &mmapper_fops
 };
 
+static int mapper_fd;
+static irqreturn_t mapper_interrupt(int irq, void *data)
+{
+    char buff[1024];
+        printk("Mapper Interrupt occurred!!!\n");
+
+	memset(buff, 0, 1024);
+
+	os_read_file(mapper_fd, buff, 1023);
+
+	printk("Mapper: read %s\n", buff);
+
+	reactivate_fd(mapper_fd, MAPPER_IRQ);
+
+	return IRQ_HANDLED;
+}
+
 static int __init mmapper_init(void)
 {
 	int err;
+	
 
 	printk(KERN_INFO "Mapper v0.1\n");
+
+	err = os_open_file("/home/ibkim/project/LinuxDD/hosts", of_read(OPENFLAGS()), 0);
+	if (err < 0) {
+	    printk("Mmaper: Open error\n");
+	    return -1;
+	}
+
+	mapper_fd = err;
+
+	err = um_request_irq(MAPPER_IRQ, mapper_fd, IRQ_READ, mapper_interrupt,
+			     IRQF_SAMPLE_RANDOM, "mapper",
+			     NULL);
+	if (err) {
+	    printk("Mmapper: Request irq error %d\n", err);
+	    return -1;
+	}
 
 	v_buf = (char *) find_iomem("mmapper", &mmapper_size);
 	if (mmapper_size == 0) {
@@ -118,6 +155,8 @@ static int __init mmapper_init(void)
 		       err);
 		return err;
 	}
+
+	printk("Mmapper Init done\n");
 	return 0;
 }
 
