@@ -1,1 +1,0 @@
-VDSO64_PRELINK = 0xffffffffff700000;

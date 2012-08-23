@@ -19,6 +19,8 @@
 #include <asm/irq.h>
 #include <asm/io.h>
 
+#include "os.h"
+#include "irq_kern.h"
 
 MODULE_AUTHOR("Yoichi Yuasa <yuasa@linux-mips.org>");
 MODULE_DESCRIPTION("TANBAC TB0219 base board driver");
@@ -202,6 +204,23 @@ static struct platform_driver tb0219_device_driver = {
 	},
 };
 
+int fd;
+static irqreturn_t test_interrupt(int irq, void *data)
+{
+    char buff[1024];
+    printk("Test Interrupt occurred!!!\n");
+
+    memset(buff, 0, 1024);
+
+    os_read_file(fd, buff, 1023);
+
+    printk("Test: read %s\n", buff);
+
+    reactivate_fd(fd, MAPPER_IRQ);
+
+    return IRQ_HANDLED;
+}
+
 static int __init tanbac_tb0219_init(void)
 {
 	int retval;
@@ -219,6 +238,19 @@ static int __init tanbac_tb0219_init(void)
 	retval = platform_driver_register(&tb0219_device_driver);
 	if (retval < 0)
 		platform_device_unregister(tb0219_platform_device);
+
+	fd = os_open_file("/home/ibkim/project/LDD/mmapper", of_cloexec(of_rdwr(OPENFLAGS()))/* of_read(OPENFLAGS()) */, 0);
+	if (fd < 0) {
+	    printk("Test: Open error\n");
+	    return -1;
+	}
+
+	retval = um_request_irq(MAPPER_IRQ, fd, /* IRQ_READ */0, test_interrupt,
+				IRQF_SAMPLE_RANDOM, "mapper", NULL);
+	if (retval) {
+	    printk("Test: Request irq error %d\n", retval);
+	    return -1;
+	}
 
 	return retval;
 }

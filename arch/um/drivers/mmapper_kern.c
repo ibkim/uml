@@ -122,11 +122,11 @@ static irqreturn_t mapper_interrupt(int irq, void *data)
 static int __init mmapper_init(void)
 {
 	int err;
-	
+
 
 	printk(KERN_INFO "Mapper v0.1\n");
 
-	err = os_open_file("/home/ibkim/project/LinuxDD/hosts", of_read(OPENFLAGS()), 0);
+	err = os_open_file("/home/ibkim/project/LDD/mmapper", of_read(OPENFLAGS()), 0);
 	if (err < 0) {
 	    printk("Mmaper: Open error\n");
 	    return -1;
@@ -138,8 +138,8 @@ static int __init mmapper_init(void)
 			     IRQF_SAMPLE_RANDOM, "mapper",
 			     NULL);
 	if (err) {
-	    printk("Mmapper: Request irq error %d\n", err);
-	    return -1;
+	   printk("Mmapper: Request irq error %d\n", err);
+	   return -1;
 	}
 
 	v_buf = (char *) find_iomem("mmapper", &mmapper_size);
